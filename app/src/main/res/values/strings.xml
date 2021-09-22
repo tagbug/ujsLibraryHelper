@@ -1,0 +1,22 @@
+<resources>
+    <!-- MenuString -->
+    <string name="menu_StartInterface">打开自启动设置</string>
+    <string name="menu_DetailInterface">打开APP设置</string>
+    <string name="menu_ShowRecentDialog">查看最近自动运行记录</string>
+
+    <string name="app_name">江苏大学图书馆预约助手</string>
+    <string name="inputEmptyHint">未填写</string>
+    <string name="choiceEmptyHint">未选择</string>
+    <string name="userNameHint">用户名（学号）：</string>
+    <string name="areaChoiceHint">预约览室ID：</string>
+    <string name="areaChoiceButtonHint">选取览室</string>
+    <string name="seatChoiceHint">预约座位ID：</string>
+    <string name="seatChoiceButtonHint">选取座位</string>
+    <string name="timeChoiceHint">预约时间：</string>
+    <string name="timingTimeChoiceHint">定时运行时间：</string>
+    <string name="timeChoiceButtonHint">选取时间</string>
+    <string name="testButtonHint">预约测试</string>
+    <string name="saveButtonHint"><![CDATA[保存&定时运行]]></string>
+    <string name="autoChooseSeatSwitchHint">失败时自动选取邻近座位</string>
+    <string name="cancelTimingButtonHint">取消定时任务</string>
+</resources>
