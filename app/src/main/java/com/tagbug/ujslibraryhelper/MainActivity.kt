@@ -312,7 +312,7 @@ class MainActivity : AppCompatActivity() {
                 log("Error: 请先选择预约时间")
                 return@setOnClickListener
             }
-            OrderHelper.runWithTimer(orderTimeType!!, hasAutoChooseSeat, log).thenAccept(log)
+            OrderHelper.runWithTimer(orderTimeType!!, hasAutoChooseSeat, log)
                 .exceptionally {
                     // 如果发生异常导致执行失败，则给出适当提示
                     OrderHelper.dealWithException(log)(it)

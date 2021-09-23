@@ -9,7 +9,13 @@ import com.tagbug.ujslibraryhelper.util.ObjectToBase64
 import com.tagbug.ujslibraryhelper.util.TimerNotification
 import java.util.*
 
+/**
+ * 重启监听器
+ */
 class BootReceiver : BroadcastReceiver() {
+    /**
+     * 配置项
+     */
     private val systemBootAction = "android.intent.action.BOOT_COMPLETED"
 
     override fun onReceive(context: Context?, intent: Intent?) {
@@ -26,7 +32,7 @@ class BootReceiver : BroadcastReceiver() {
                         TimerNotification.showSimpleNotification(context, "重启恢复失败：未设置定时运行时间")
                         return@apply
                     }
-                    // 设置定时任务
+                    // 设置（恢复）定时任务
                     val alarmMgr = getSystemService(Context.ALARM_SERVICE) as AlarmManager
                     Intent(this, AutoTimer::class.java).apply {
                         setPackage(packageName)

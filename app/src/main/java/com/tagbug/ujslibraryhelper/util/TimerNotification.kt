@@ -9,13 +9,22 @@ import androidx.core.app.NotificationCompat
 import com.tagbug.ujslibraryhelper.MainActivity
 import com.tagbug.ujslibraryhelper.R
 
+/**
+ * 定时运行的通知推送工具
+ */
 object TimerNotification {
+    /**
+     * 配置项
+     */
     private const val channelId = "TimerNotificationChannel"
     private const val channelName = "AutoTimer"
     private const val channelDescription = "自动预约的通知"
     private const val channelImportance = NotificationManager.IMPORTANCE_HIGH
     private const val defaultNotificationId = 1
 
+    /**
+     * 添加默认通知渠道
+     */
     fun addNotificationChannel(context: Context) {
         // 创建通知渠道
         NotificationChannel(channelId, channelName, channelImportance).apply {
@@ -29,6 +38,9 @@ object TimerNotification {
         }
     }
 
+    /**
+     * 生成一个PendingIntent用于启动指定Activity
+     */
     fun createPendingIntent(context: Context, target: Class<*>): PendingIntent {
         val intent = Intent(context, target).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -36,6 +48,9 @@ object TimerNotification {
         return PendingIntent.getActivity(context, 0, intent, 0)
     }
 
+    /**
+     * 推送简单文本通知
+     */
     fun showSimpleNotification(context: Context, message: String) {
         NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.mipmap.ic_launcher)
@@ -49,6 +64,9 @@ object TimerNotification {
             }
     }
 
+    /**
+     * 推送大文本通知
+     */
     fun showLargeNotification(context: Context, messageTitle: String, message: String) {
         NotificationCompat.Builder(context, channelId).apply {
             setSmallIcon(R.mipmap.ic_launcher)

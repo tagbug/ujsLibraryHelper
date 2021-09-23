@@ -9,6 +9,9 @@ import com.tagbug.ujslibraryhelper.util.OrderHelper
 import com.tagbug.ujslibraryhelper.util.TimerNotification
 import java.util.*
 
+/**
+ * 定时运行广播接收器
+ */
 class AutoTimer : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
         context?.apply {
@@ -17,6 +20,9 @@ class AutoTimer : BroadcastReceiver() {
         }
     }
 
+    /**
+     * 尝试运行
+     */
     private fun tryToRunWithTimer(context: Context) {
         var orderTimeType: OrderHelper.OrderTimeType? = null
         var hasAutoChooseSeat: Boolean

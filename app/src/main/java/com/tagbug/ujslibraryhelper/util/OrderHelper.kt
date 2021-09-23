@@ -257,6 +257,7 @@ object OrderHelper {
      * @param orderTimeType 定时运行的类型
      * @param autoSelectSeat 是否自动选取相邻座位（如果目标不可用）
      * @param logger 日志记录器（可以省略）
+     * @return 预约成功的信息（如果无异常）
      */
     fun runWithTimer(
         orderTimeType: OrderTimeType,
@@ -385,6 +386,15 @@ object OrderHelper {
         }, executor)
     }
 
+    /**
+     * 用日志记录器记录发生的异常
+     * 当额外记录器不存在时，基础记录器记录全部信息；
+     * 否则，基础记录器只记录运行错误提示，额外记录器记录详细信息
+     *
+     * @param baseLogger 基础记录器
+     * @param extraLogger 额外记录器
+     * @return 异常处理函数
+     */
     fun dealWithException(
         baseLogger: ((message: String) -> Unit),
         extraLogger: ((message: String) -> Unit)?
@@ -419,6 +429,12 @@ object OrderHelper {
         }
     }
 
+    /**
+     * 用日志记录器记录发生的异常
+     *
+     * @param logger 日志记录器
+     * @return 异常处理函数
+     */
     fun dealWithException(logger: ((message: String) -> Unit)): (Throwable) -> Unit {
         return dealWithException(logger, null)
     }
@@ -434,5 +450,8 @@ object OrderHelper {
      */
     enum class OrderTimeType { DEFAULT, CHECKED, TODAY, TOMORROW, FUTURE_TIME }
 
+    /**
+     * 用于描述由服务器返回的JSON数据引起的预约失败异常
+     */
     class OrderFailException(message: String, val json: String) : Exception(message)
 }
