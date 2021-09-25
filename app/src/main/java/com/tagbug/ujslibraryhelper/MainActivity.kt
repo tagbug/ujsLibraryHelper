@@ -1,10 +1,7 @@
 package com.tagbug.ujslibraryhelper
 
 import android.annotation.SuppressLint
-import android.app.AlarmManager
-import android.app.DatePickerDialog
-import android.app.PendingIntent
-import android.app.TimePickerDialog
+import android.app.*
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -44,6 +41,7 @@ class MainActivity : AppCompatActivity() {
         const val configFileName = "MainActivity.Config"
     }
 
+    private var defaultProgressDialog: ProgressDialog? = null
     private val infoToShowWithStart =
         listOf("为了保证定时任务效果，建议给予自启动权限，点击右上角有三个点导航到设置页", "通知推送效果可以手动调节，可以手动测试", "建议给予APP自启动权限，否则定时运行功能在部分系统上可能会失效")
     private val orderTimeTypeTip = "预约时间类型：\n" +
@@ -117,6 +115,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         logTextView.movementMethod = ScrollingMovementMethod.getInstance()
+        defaultProgressDialog = ProgressDialog(this)
         // 加载配置项
         loadConfig()
         // 初始化OrderHelper
@@ -137,6 +136,7 @@ class MainActivity : AppCompatActivity() {
         }
         // 设置选择地区按钮的回调
         button_chooseArea.setOnClickListener {
+            showProgressing()
             OrderHelper.getAreaTree().thenAccept {
                 if (it.status != 1) {
                     throw OrderFailException("获取可用空间失败！", it.toString())
@@ -146,6 +146,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 val msg = Message()
                 msg.obj = Runnable {
+                    hideProgressing()
                     // 注：对UI的更新需要在主线程中完成，此处用Handle机制
                     AlertDialog.Builder(this).setTitle("选择大类").setItems(mainList.toTypedArray()) { _, mainIndex ->
                         val firstList = it.data.list[mainIndex]._child.map { item ->
@@ -170,6 +171,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 handler.sendMessage(msg)
             }.exceptionally {
+                hideProgressing()
                 // 如果发生异常导致执行失败，则给出适当提示
                 OrderHelper.dealWithException(log)(it)
                 return@exceptionally null
@@ -177,6 +179,7 @@ class MainActivity : AppCompatActivity() {
         }
         // 设置选取预约时间按钮的回调
         button_chooseOrderTime.setOnClickListener {
+            showProgressing()
             val choiceValues = OrderTimeType.values()
             val choiceList = choiceValues.map { it.name }
             val ca = Calendar.getInstance()
@@ -191,6 +194,7 @@ class MainActivity : AppCompatActivity() {
                             // 在主线程中更新UI
                             val msg = Message()
                             msg.obj = Runnable {
+                                hideProgressing()
                                 AlertDialog.Builder(this).setTitle("提示").setMessage("注意，当前可预约日期为：\n$availableDays")
                                     .setCancelable(false)
                                     .setPositiveButton("我知道了") { _, _ ->
@@ -215,6 +219,7 @@ class MainActivity : AppCompatActivity() {
                             }
                             handler.sendMessage(msg)
                         }.exceptionally {
+                            hideProgressing()
                             // 如果发生异常导致执行失败，则给出适当提示
                             OrderHelper.dealWithException(log)(it)
                             return@exceptionally null
@@ -247,6 +252,7 @@ class MainActivity : AppCompatActivity() {
             val availableSeat = it.data.list.map { item -> item.name + if (item.status != 1) "（不可用）" else "" }
             val msg = Message()
             msg.obj = Runnable {
+                hideProgressing()
                 AlertDialog.Builder(this).setTitle("选择座位").setItems(availableSeat.toTypedArray()) { _, index ->
                     OrderHelper.seatId = it.data.list[index].id.toString()
                     log("你选择的座位名是 \"${availableSeat[index]}\"")
@@ -268,6 +274,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         button_chooseSeat.setOnClickListener {
+            showProgressing()
             if (orderTimeType == OrderTimeType.DEFAULT || orderTimeType == OrderTimeType.CHECKED) {
                 OrderHelper.getSpaceTime().thenApply {
                     if (it.status != 1) {
@@ -276,6 +283,7 @@ class MainActivity : AppCompatActivity() {
                     OrderHelper.timeSegment = it.data.list[0].id.toString()
                     OrderHelper.getSpaceOld(it.data.list[0].startTime, it.data.list[0].endTime).get()
                 }.thenAccept(seatPickerDialog).exceptionally {
+                    hideProgressing()
                     // 如果发生异常导致执行失败，则给出适当提示
                     OrderHelper.dealWithException(log)(it)
                     return@exceptionally null
@@ -420,6 +428,14 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private fun showProgressing() {
+        defaultProgressDialog?.show()
+    }
+
+    private fun hideProgressing() {
+        defaultProgressDialog?.hide()
     }
 
     /**
