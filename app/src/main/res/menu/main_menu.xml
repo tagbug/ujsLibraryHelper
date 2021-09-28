@@ -9,4 +9,7 @@
     <item
         android:id="@+id/menu_ShowRecentDialog"
         android:title="@string/menu_ShowRecentDialog" />
+    <item
+        android:id="@+id/menu_CancelBook"
+        android:title="@string/menu_CancelBook" />
 </menu>

@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.*
 import android.content.ComponentName
 import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -13,6 +14,7 @@ import android.text.method.ScrollingMovementMethod
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
@@ -23,6 +25,7 @@ import com.tagbug.ujslibraryhelper.util.OrderHelper.OrderFailException
 import com.tagbug.ujslibraryhelper.util.OrderHelper.OrderTimeType
 import kotlinx.android.synthetic.main.activity_main.*
 import java.util.*
+import kotlin.reflect.jvm.javaMethod
 
 class MainActivity : AppCompatActivity() {
     @SuppressLint("HandlerLeak")
@@ -179,14 +182,15 @@ class MainActivity : AppCompatActivity() {
         }
         // 设置选取预约时间按钮的回调
         button_chooseOrderTime.setOnClickListener {
-            showProgressing()
             val choiceValues = OrderTimeType.values()
             val choiceList = choiceValues.map { it.name }
             val ca = Calendar.getInstance()
             val chooseTypeDialog =
                 AlertDialog.Builder(this).setTitle("选择预约时间类型").setItems(choiceList.toTypedArray()) { _, index ->
                     if (choiceValues[index] == OrderTimeType.DEFAULT || choiceValues[index] == OrderTimeType.CHECKED) {
+                        showProgressing()
                         OrderHelper.getSpaceDay().thenAccept {
+                            hideProgressing()
                             if (it.status != 1) {
                                 throw OrderFailException("获取可预约日期失败", it.toString())
                             }
@@ -194,7 +198,6 @@ class MainActivity : AppCompatActivity() {
                             // 在主线程中更新UI
                             val msg = Message()
                             msg.obj = Runnable {
-                                hideProgressing()
                                 AlertDialog.Builder(this).setTitle("提示").setMessage("注意，当前可预约日期为：\n$availableDays")
                                     .setCancelable(false)
                                     .setPositiveButton("我知道了") { _, _ ->
@@ -265,17 +268,19 @@ class MainActivity : AppCompatActivity() {
             handler.sendMessage(msg)
         }
         val seatPicker = {
+            showProgressing()
             OrderHelper.orderDay = String.format("%tF", Calendar.getInstance())
             OrderHelper.timeSegment = "0"
             OrderHelper.getSpaceOld("8:00", "23:50").thenAccept(seatPickerDialog).exceptionally {
+                hideProgressing()
                 // 如果发生异常导致执行失败，则给出适当提示
                 OrderHelper.dealWithException(log)(it)
                 return@exceptionally null
             }
         }
         button_chooseSeat.setOnClickListener {
-            showProgressing()
             if (orderTimeType == OrderTimeType.DEFAULT || orderTimeType == OrderTimeType.CHECKED) {
+                showProgressing()
                 OrderHelper.getSpaceTime().thenApply {
                     if (it.status != 1) {
                         throw OrderFailException("获取目标日期可预约时间段失败！", it.toString())
@@ -399,6 +404,61 @@ class MainActivity : AppCompatActivity() {
             R.id.menu_DetailInterface -> miu.jumpDetailInterface(this)
             R.id.menu_StartInterface -> miu.jumpStartInterface(this)
             R.id.menu_ShowRecentDialog -> showRecentLog()
+            R.id.menu_CancelBook -> {
+                showProgressing()
+                OrderHelper.loginNow().thenApply {
+                    OrderHelper.getBookHistory().get()
+                }.thenAccept {
+                    hideProgressing()
+                    if (it.status != 1) {
+                        throw OrderFailException("获取预约历史失败！", it.toString())
+                    }
+                    val bookList = it.data.list!!.map { item ->
+                        val timeSplit = item.bookTimeSegment.split("~", " ")
+                        val timeInfo =
+                            timeSplit[0] + ' ' + timeSplit[1].split(".")[0] + '~' + timeSplit[3].split(".")[0]
+                        "${item.spaceInfo}\n[${item.statusName}]\n${timeInfo}\n"
+                    }
+                    val msg = Message()
+                    msg.obj = Runnable {
+                        val itemListener: (Int) -> Unit = { index ->
+                            AlertDialog.Builder(this).setTitle("提示").setMessage("你确定要取消吗？（一天内可能有取消次数上限）")
+                                .setPositiveButton("确定") { _, which ->
+                                    if (which == AlertDialog.BUTTON_POSITIVE) {
+                                        showProgressing()
+                                        OrderHelper.cancelBookNow(it.data.list!![index].id.toString())
+                                            .thenAccept { rs ->
+                                                val msg1 = Message()
+                                                msg1.obj = Runnable {
+                                                    hideProgressing()
+                                                    Toast.makeText(this, rs.msg, Toast.LENGTH_LONG).show()
+                                                }
+                                                handler.sendMessage(msg1)
+                                            }.exceptionally { e ->
+                                                hideProgressing()
+                                                // 如果发生异常导致执行失败，则给出适当提示
+                                                OrderHelper.dealWithException(log)(e)
+                                                return@exceptionally null
+                                            }
+                                    }
+                                }.setNegativeButton("再想想") { _, _ -> }.show()
+                        }
+                        AlertDialog.Builder(this).setTitle("查看&取消预约")
+                            .setItems(bookList.toTypedArray()) { _, index ->
+                                itemListener(index)
+                            }.show()
+                    }
+                    handler.sendMessage(msg)
+                }.exceptionally {
+                    hideProgressing()
+                    // 如果发生异常导致执行失败，则给出适当提示
+                    OrderHelper.dealWithException(log)(it)
+                    if(it.cause is OrderFailException){
+                        log("提示：可能是你还没有预约记录")
+                    }
+                    return@exceptionally null
+                }
+            }
             else -> return super.onOptionsItemSelected(item)
         }
         return true
@@ -435,7 +495,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun hideProgressing() {
-        defaultProgressDialog?.hide()
+        defaultProgressDialog?.dismiss()
     }
 
     /**

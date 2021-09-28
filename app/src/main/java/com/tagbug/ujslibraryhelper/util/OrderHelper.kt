@@ -160,12 +160,18 @@ object OrderHelper {
     /**
      * 异步处理登录流程
      */
-    fun loginNow(): CompletableFuture<LoginJSON> {
+    fun loginNow(): CompletableFuture<String> {
         return CompletableFuture.supplyAsync({
             val args = mapOf("username" to userId, "password" to defaultPassword, "from" to "mobile")
             checkArgs(args)
             val request = generatePostRequest("http://libspace.ujs.edu.cn/api.php/login", args)
-            return@supplyAsync resolveJSONRequest(request, LoginJSON::class.java).get()
+            return@supplyAsync resolveJSONRequest(request, LoginJSON::class.java).thenApply {
+                if (it.status != 1) {
+                    throw OrderFailException("登录失败！", it.toString())
+                }
+                accessToken = it.data._hash_?.access_token
+                "${it.msg}: 用户信息: ${it.data.list?.name} ${it.data.list?.deptName}"
+            }.get()
         }, executor)
     }
 
@@ -252,6 +258,30 @@ object OrderHelper {
     }
 
     /**
+     * 异步处理获取预约历史流程
+     */
+    fun getBookHistory(): CompletableFuture<BookHistoryJSON> {
+        return CompletableFuture.supplyAsync({
+            val args = mapOf("access_token" to accessToken, "userid" to userId)
+            checkArgs(args)
+            val request = generateGetRequest("http://libspace.ujs.edu.cn/api.php/profile/books", args)
+            return@supplyAsync resolveJSONRequest(request, BookHistoryJSON::class.java).get()
+        }, executor)
+    }
+
+    /**
+     * 异步处理取消预约流程
+     */
+    fun cancelBookNow(id: String): CompletableFuture<CommonJSON> {
+        return CompletableFuture.supplyAsync({
+            val args = mapOf("id" to id, "_method" to "delete", "access_token" to accessToken, "userid" to userId)
+            checkArgs(args)
+            val request = generateGetRequest("http://libspace.ujs.edu.cn/api.php/profile/books/$id", args)
+            return@supplyAsync resolveJSONRequest(request, CommonJSON::class.java).get()
+        }, executor)
+    }
+
+    /**
      * 自动预约流程
      *
      * @param orderTimeType 定时运行的类型
@@ -267,11 +297,7 @@ object OrderHelper {
         return CompletableFuture.supplyAsync({
             // 先登录
             val loginFinished = loginNow().thenAccept {
-                if (it.status != 1) {
-                    throw OrderFailException("登录失败！", it.toString())
-                }
-                accessToken = it.data._hash_.access_token
-                logger?.invoke("${it.msg}: 用户信息: ${it.data.list.name} ${it.data.list.deptName}")
+                logger?.invoke(it)
             }
             // 根据不同的运行选项执行不同逻辑
             return@supplyAsync when (orderTimeType) {
@@ -406,24 +432,21 @@ object OrderHelper {
                 logger("运行错误，长按显示详细信息：")
                 logger = extraLogger
             }
-            if (exception is CompletionException) {
-                exception = exception.cause ?: exception
-            }
-            if (exception is ExecutionException) {
+            while (exception is CompletionException || exception is ExecutionException) {
                 exception = exception.cause ?: exception
             }
             when (exception) {
                 is java.lang.IllegalStateException -> {
-                    logger("$exception\n请检查前一项是否未填写/未选择，如果在定时运行时报错请检查配置是否保存")
+                    logger("${exception.message}\n请检查前一项是否未填写/未选择，如果在定时运行时报错请检查配置是否保存")
                 }
                 is IOException -> {
-                    logger("$exception\n请检查网络连接是否正常")
+                    logger("${exception.message}\n请检查网络连接是否正常")
                 }
                 is OrderFailException -> {
-                    logger("$exception\n服务器返回数据异常，提供异常JSON以供参考：\n${exception.json}")
+                    logger("${exception.message}\n服务器返回数据异常，提供异常JSON以供参考：\n${exception.json}")
                 }
                 is java.lang.Exception -> {
-                    logger("$exception\n这是一个预期之外的异常，请联系作者处理")
+                    logger("${exception.message}\n这是一个预期之外的异常，请联系作者处理")
                 }
             }
         }

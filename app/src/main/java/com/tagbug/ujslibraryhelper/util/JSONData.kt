@@ -9,7 +9,7 @@ import com.squareup.moshi.JsonClass
 data class LoginJSON(var status: Int, var msg: String, var data: LoginData)
 
 @JsonClass(generateAdapter = true)
-data class LoginData(var list: LoginList, var _hash_: LoginHash)
+data class LoginData(var list: LoginList?, var _hash_: LoginHash?)
 
 @JsonClass(generateAdapter = true)
 data class LoginList(var id: String, var name: String, var deptName: String)
@@ -30,7 +30,12 @@ data class AreaTreeData(var list: List<AreaTreeListItem>)
 data class AreaTreeListItem(var name: String, var isValid: Int, var _child: List<AreaTreeListFirstChild>)
 
 @JsonClass(generateAdapter = true)
-data class AreaTreeListFirstChild(var id: Int, var isValid: Int, var name: String, var _child: List<AreaTreeListSecondChild>)
+data class AreaTreeListFirstChild(
+    var id: Int,
+    var isValid: Int,
+    var name: String,
+    var _child: List<AreaTreeListSecondChild>
+)
 
 @JsonClass(generateAdapter = true)
 data class AreaTreeListSecondChild(var id: Int, var isValid: Int, var name: String)
@@ -97,3 +102,21 @@ data class BookData(var list: BookList)
 
 @JsonClass(generateAdapter = true)
 data class BookList(var id: Int)
+
+/**
+ * JSON from http://libspace.ujs.edu.cn/api.php/profile/books
+ */
+@JsonClass(generateAdapter = true)
+data class BookHistoryJSON(var status: Int, var msg: String, var data: BookHistoryData)
+
+@JsonClass(generateAdapter = true)
+data class BookHistoryData(var list: List<BookHistoryList>?)
+
+@JsonClass(generateAdapter = true)
+data class BookHistoryList(var id: Int, var statusName: String, var spaceInfo: String, var bookTimeSegment: String)
+
+/**
+ * 通用JSON，只处理请求状态码和状态信息
+ */
+@JsonClass(generateAdapter = true)
+data class CommonJSON(var status: Int, var msg: String)

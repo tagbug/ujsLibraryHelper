@@ -19,4 +19,5 @@
     <string name="saveButtonHint"><![CDATA[保存&定时运行]]></string>
     <string name="autoChooseSeatSwitchHint">失败时自动选取邻近座位</string>
     <string name="cancelTimingButtonHint">取消定时任务</string>
+    <string name="menu_CancelBook"><![CDATA[查看&取消预约]]></string>
 </resources>
